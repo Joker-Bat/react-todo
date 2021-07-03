@@ -1,78 +1,103 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
+import axios from "axios";
 
 function App() {
   const inputField = useRef(null);
-  const [todoText, setTodoText] = useState("");
-  const [listOfTodos, setListOfTodos] = useState([]);
+  const [userName, setUserName] = useState("");
+  const [listOfUsers, setListOfUsers] = useState([]);
   const [curId, setCurId] = useState(undefined);
+  const [successAdd, setSuccessAdd] = useState(false);
+  const [error, setError] = useState("");
 
-  const getLocalStorageTodos = () => {
-    const todos = JSON.parse(localStorage.getItem("todos"));
-    if (todos) {
-      setListOfTodos(todos);
-    }
-  };
+  // const getLocalStorageTodos = () => {
+  //   const todos = JSON.parse(localStorage.getItem("todos"));
+  //   if (todos) {
+  //     setListOfUsers(todos);
+  //   }
+  // };
 
-  const setLocalStorageTodos = (todos) => {
-    const jsonTodos = JSON.stringify(todos);
-    localStorage.setItem("todos", jsonTodos);
-  };
+  // const setLocalStorageTodos = (todos) => {
+  //   const jsonTodos = JSON.stringify(todos);
+  //   localStorage.setItem("todos", jsonTodos);
+  // };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (curId !== undefined) {
-      const clickedTodoIndex = listOfTodos.findIndex((c) => {
-        return c.id === curId;
+    // if (curId !== undefined) {
+    //   const clickedTodoIndex = listOfUsers.findIndex((c) => {
+    //     return c.id === curId;
+    //   });
+    //   const currentTodos = [...listOfUsers];
+    //   currentTodos[clickedTodoIndex].todo = userName;
+    //   setListOfUsers(currentTodos);
+    //   // setLocalStorageTodos(currentTodos);
+    //   setCurId(undefined);
+    // } else {
+    //   setListOfUsers((prev) => {
+    //     const updatedTodos = [...prev, { id: prev.length, todo: userName }];
+    //     // setLocalStorageTodos(updatedTodos);
+    //     return updatedTodos;
+    //   });
+    // }
+    try {
+      setSuccessAdd(false);
+      setError("");
+      const res = await axios({
+        method: "POST",
+        url: "http://localhost:8000/users",
+        data: { name: userName },
       });
-      const currentTodos = [...listOfTodos];
-      currentTodos[clickedTodoIndex].todo = todoText;
-      setListOfTodos(currentTodos);
-      setLocalStorageTodos(currentTodos);
-      setCurId(undefined);
-    } else {
-      setListOfTodos((prev) => {
-        const updatedTodos = [...prev, { id: prev.length, todo: todoText }];
-        setLocalStorageTodos(updatedTodos);
-        return updatedTodos;
-      });
+      console.log(res.data);
+      if (res.data.status === "success") setSuccessAdd(true);
+    } catch (err) {
+      setError(err.message);
+      console.log("Error when addUser: ", err.message);
     }
 
-    setTodoText("");
+    setUserName("");
   };
 
   const deleteTodo = (id) => {
-    setListOfTodos((prev) => {
+    setListOfUsers((prev) => {
       const filteredTodos = prev.filter((todo) => {
         return todo.id !== id;
       });
-      setLocalStorageTodos(filteredTodos);
+      // setLocalStorageTodos(filteredTodos);
       return filteredTodos;
     });
   };
 
   const handleTodoClick = (id) => {
     inputField.current.focus();
-    const clickedTodo = listOfTodos.filter((item) => item.id === id)[0];
+    const clickedTodo = listOfUsers.filter((item) => item.id === id)[0];
     setCurId(clickedTodo.id);
-    setTodoText(clickedTodo.todo);
+    setUserName(clickedTodo.todo);
   };
 
   useEffect(() => {
-    getLocalStorageTodos();
-  }, []);
+    const fetchData = async () => {
+      const res = await axios.get("http://localhost:8000/users");
+      console.log(res.data);
+    };
+
+    fetchData();
+    // getLocalStorageTodos();
+  }, [successAdd]);
 
   return (
     <div className="App">
       <section className="container">
-        <h1>React Todo</h1>
+        {successAdd ? <h1>Successfully Added to database</h1> : null}
+        {error ? <h1>{error}</h1> : null}
+        <h1>React Users List</h1>
         <form onSubmit={handleSubmit}>
           <input
             ref={inputField}
             type="text"
-            value={todoText}
-            placeholder="Ithu ok va bro :)"
-            onChange={(e) => setTodoText(e.target.value)}
+            value={userName}
+            placeholder="Enter user name: "
+            onChange={(e) => setUserName(e.target.value)}
           />
           <button type="submit">{curId !== undefined ? "Save" : "Add"}</button>
         </form>
@@ -80,7 +105,7 @@ function App() {
         <div className="todoList">
           <h1>Your Todos</h1>
           <ul>
-            {listOfTodos.map((item) => {
+            {listOfUsers.map((item) => {
               return (
                 <li key={item.id}>
                   <span onClick={() => handleTodoClick(item.id)}>
