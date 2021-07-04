@@ -32,7 +32,7 @@ html {
   justify-content: center;
 }
 
-.container form input {
+.container input {
   padding: 0.5rem 0.8rem;
   font-size: 1.2rem;
 }
@@ -71,4 +71,64 @@ html {
 
 .container .todoList ul li span:nth-child(2):hover {
   color: red;
+}
+
+.container .pagination {
+  width: 100%;
+}
+
+.container .pagination ul {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+}
+
+.container .pagination ul li {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 0 0.5rem;
+}
+
+.container .pagination ul li.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.container .pagination ul li.active {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.container .success-message {
+  border-radius: 4px;
+  background-color: #60b860;
+  color: #fff;
+}
+
+.container .error-message {
+  border-radius: 4px;
+  background-color: #ff4141;
+  color: #fff;
+}
+
+.container .loading {
+  width: 50px;
+  height: 50px;
+  background-color: transparent;
+  border-top: 3px solid #60b860;
+  border-bottom: 3px solid #60b860;
+  border-radius: 50%;
+  margin: auto;
+  margin-bottom: 2rem;
+  animation: loading 0.3s linear infinite;
+}
+
+@keyframes loading {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
