@@ -21,7 +21,7 @@ html {
 
 .container h1 {
   font-size: 2rem;
-  margin-bottom: 2rem;
+  margin: 2rem 0;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid;
 }

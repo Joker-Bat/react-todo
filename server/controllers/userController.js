@@ -11,8 +11,10 @@ exports.getAllUsers = async (req, res, next) => {
     const userCount = await User.find({
       active: { $ne: false },
     }).countDocuments();
+
     res.status(200).json({
       status: "success",
+      total: userCount,
       data: {
         users,
         current: page,
@@ -97,9 +99,14 @@ exports.deleteUser = async (req, res, next) => {
 
 exports.searchUser = async (req, res, next) => {
   try {
-    const page = req.query.page || 1;
+    const page = +req.query.page || 1;
     const perPage = 10;
     const keyword = req.params.keyword;
+
+    const totalUsers = await User.find({
+      active: { $ne: false },
+      name: { $regex: keyword, $options: "i" },
+    }).countDocuments();
 
     const users = await User.find({
       active: { $ne: false },
@@ -110,11 +117,11 @@ exports.searchUser = async (req, res, next) => {
 
     res.status(200).json({
       status: "success",
-      total: users.length,
+      total: totalUsers,
       data: {
         users,
         current: page,
-        pages: Math.ceil(users.length / perPage),
+        pages: Math.ceil(totalUsers / perPage),
       },
     });
   } catch (err) {

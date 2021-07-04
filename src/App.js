@@ -15,6 +15,9 @@ function App() {
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [searchValue, setSearchValue] = useState("");
+  const [searchTotalPages, setSearchTotalPages] = useState(0);
+  const [searchCurrentPage, setSearchCurrentPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Dummy state for checking database change
   const [dataChanged, setDataChanged] = useState(0);
@@ -70,10 +73,10 @@ function App() {
     }
 
     setCurId(undefined);
-    setSearchValue("");
     setUserName("");
   };
 
+  // To select a user to Update
   const handleUserClick = (id) => {
     inputField.current.focus();
     const clickedTodo = listOfUsers.filter((item) => item._id === id)[0];
@@ -100,15 +103,27 @@ function App() {
   };
 
   const gotoPrevpage = () => {
-    setCurrentPage((prev) => {
-      return prev > 1 ? prev - 1 : prev;
-    });
+    if (searchValue) {
+      setSearchCurrentPage((prev) => {
+        return prev > 1 ? prev - 1 : prev;
+      });
+    } else {
+      setCurrentPage((prev) => {
+        return prev > 1 ? prev - 1 : prev;
+      });
+    }
   };
 
   const gotoNextpage = () => {
-    setCurrentPage((prev) => {
-      return prev < totalPages ? prev + 1 : prev;
-    });
+    if (searchValue) {
+      setSearchCurrentPage((prev) => {
+        return prev < searchTotalPages ? prev + 1 : prev;
+      });
+    } else {
+      setCurrentPage((prev) => {
+        return prev < totalPages ? prev + 1 : prev;
+      });
+    }
   };
 
   const getAllData = async () => {
@@ -118,12 +133,14 @@ function App() {
       setListOfUsers(res.data.data.users);
       setTotalPages(+res.data.data.pages);
       setCurrentPage(+res.data.data.current);
+      setTotalCount(+res.data.total);
     } catch (err) {
       console.log("Error in Getting all users: ", err.message);
     }
     setLoading(false);
   };
 
+  // When searchbar typeing happen
   const handleSearchChange = async (e) => {
     const keyword = e.target.value;
     setSearchValue(keyword);
@@ -133,8 +150,10 @@ function App() {
           `http://localhost:8000/users/search/${keyword}`
         );
         setListOfUsers(res.data.data.users);
-        setTotalPages(+res.data.data.pages);
-        setCurrentPage(+res.data.data.current);
+        setDataChanged((prev) => prev + 1);
+        setSearchTotalPages(+res.data.data.pages);
+        setSearchCurrentPage(+res.data.data.current);
+        setTotalCount(+res.data.total);
         console.log(res);
       } catch (err) {
         console.log("Error on Search Value: ", err.message);
@@ -142,35 +161,72 @@ function App() {
       }
     } else {
       getAllData();
+      setSearchTotalPages(0);
+      setSearchCurrentPage(0);
     }
   };
 
+  // At initial Render
   useEffect(() => {
     getAllData();
   }, []);
 
+  // Run only when all User pagination happen
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
-      try {
-        let route = searchValue
-          ? `/search/${searchValue}?page=${currentPage}`
-          : `?page=${currentPage}`;
-        const res = await axios.get(`http://localhost:8000/users${route}`);
-        setListOfUsers(res.data.data.users);
-        setTotalPages(+res.data.data.pages);
-        if (+res.data.data.pages < +res.data.data.current) {
-          setCurrentPage(+res.data.data.pages);
-        } else {
-          setCurrentPage(+res.data.data.current);
+      if (!searchValue) {
+        setLoading(true);
+        try {
+          const res = await axios.get(
+            `http://localhost:8000/users?page=${currentPage}`
+          );
+          setListOfUsers(res.data.data.users);
+          setTotalPages(+res.data.data.pages);
+          if (+res.data.data.pages < +res.data.data.current) {
+            setCurrentPage(+res.data.data.pages);
+          } else {
+            setCurrentPage(+res.data.data.current);
+          }
+          setTotalCount(+res.data.total);
+        } catch (err) {
+          setError(err.message);
+          console.log("Error in Getting all users: ", err.message);
         }
-      } catch (err) {
-        console.log("Error in Getting all users: ", err.message);
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchData();
   }, [dataChanged, currentPage, searchValue]);
+
+  // Run only when search Result pagination happen
+  useEffect(() => {
+    if (searchCurrentPage !== 0) {
+      const fetchData = async () => {
+        if (searchValue) {
+          setLoading(true);
+          try {
+            const res = await axios.get(
+              `http://localhost:8000/users/search/${searchValue}?page=${searchCurrentPage}`
+            );
+            setListOfUsers(res.data.data.users);
+            setSearchTotalPages(+res.data.data.pages);
+            if (+res.data.data.pages < +res.data.data.current) {
+              setSearchCurrentPage(+res.data.data.pages);
+            } else {
+              setSearchCurrentPage(+res.data.data.current);
+            }
+            setTotalCount(+res.data.total);
+          } catch (err) {
+            setError(err.message);
+            console.log("Error in Search users: ", err.message);
+          }
+          setLoading(false);
+        }
+      };
+      fetchData();
+    }
+    // eslint-disable-next-line
+  }, [dataChanged, searchCurrentPage]);
 
   // Remove success message after 3s
   useEffect(() => {
@@ -209,7 +265,12 @@ function App() {
         {loading && <div className="loading"></div>}
 
         <div className="todoList">
-          <h1>Users</h1>
+          <h1>
+            Users ({totalCount}){" "}
+            {searchValue
+              ? `${searchCurrentPage}/${searchTotalPages}`
+              : `${currentPage}/${totalPages}`}
+          </h1>
           <ul>
             {listOfUsers.map((item) => {
               return (
@@ -227,13 +288,29 @@ function App() {
           <ul>
             <li
               onClick={gotoPrevpage}
-              className={currentPage < 2 ? "disabled" : ""}
+              className={
+                searchCurrentPage
+                  ? searchCurrentPage < 2
+                    ? "disabled"
+                    : ""
+                  : currentPage < 2
+                  ? "disabled"
+                  : ""
+              }
             >
               Prev
             </li>
             <li
               onClick={gotoNextpage}
-              className={currentPage >= totalPages ? "disabled" : ""}
+              className={
+                searchCurrentPage
+                  ? searchCurrentPage >= searchTotalPages
+                    ? "disabled"
+                    : ""
+                  : currentPage >= totalPages
+                  ? "disabled"
+                  : ""
+              }
             >
               Next
             </li>
